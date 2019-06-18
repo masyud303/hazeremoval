@@ -1,6 +1,6 @@
 '''
 Created on Tue Jun 18 11:29:07 2019
-@coded by: masyud
+@coded by: yudhiprabowo
 '''
 
 import numpy as np
