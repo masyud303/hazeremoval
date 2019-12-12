@@ -1,7 +1,7 @@
 #cython: language_level=3
 '''
 Created on Tue Jun 18 11:29:07 2019
-@coded by: yudhiprabowo
+@coded by: masyud
 '''
 
 import numpy as np
@@ -70,11 +70,11 @@ cdef unsigned char[::1] atmlight(unsigned char[:,:,::1] img, unsigned char[:,::1
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef float[:,::1] transmissionmap(unsigned char[:,:,::1] img, unsigned char[::1] atm,
-                  float[:,::1] tmap, int row, int col, int band, int sw):
+cdef double[:,::1] transmissionmap(unsigned char[:,:,::1] img, unsigned char[::1] atm,
+                  double[:,::1] tmap, int row, int col, int band, int sw):
     cdef:
         int i, j, k, i1, i2, j1, j2, m, n, pad
-        float minv, omega, dn0
+        double minv, omega, dn0
         
     omega = 0.85
     pad = sw // 2
@@ -90,9 +90,9 @@ cdef float[:,::1] transmissionmap(unsigned char[:,:,::1] img, unsigned char[::1]
             if(j2 >= col): j2 = col
             minv = 255
             for k in range(band):
-                dn0 = float(img[m, n, k]) / atm[k]
                 for m in range(i1, i2):
                     for n in range(j1, j2):
+                        dn0 = float(img[m, n, k]) / atm[k]
                         if(dn0 < minv):
                             minv = dn0
             tmap[i, j] = 1 - (omega * minv)
@@ -102,12 +102,12 @@ cdef float[:,::1] transmissionmap(unsigned char[:,:,::1] img, unsigned char[::1]
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef float[:,:,::1] guidedfilter(unsigned char[:,:,::1] img, float[:,::1] tmap, float[:,:,::1] reftmap,
-          float[:,::1] coef_a, float[:,::1] coef_b, int row, int col, int band, int rad, int eps):
+cdef double[:,:,::1] guidedfilter(unsigned char[:,:,::1] img, double[:,::1] tmap, double[:,:,::1] reftmap,
+          double[:,::1] coef_a, double[:,::1] coef_b, int row, int col, int band, int rad, int eps):
     cdef:
         int i, j, k, m, n, num
-        float sum_i, sum_p, sum_ii, sum_ip, sum_a, sum_b
-        float mean_i, mean_p, mean_ii, mean_ip, cov_ip, var_i, mean_a, mean_b
+        double sum_i, sum_p, sum_ii, sum_ip, sum_a, sum_b
+        double mean_i, mean_p, mean_ii, mean_ip, cov_ip, var_i, mean_a, mean_b
     
     for k in range(band):
         for i in range(row):
@@ -127,10 +127,10 @@ cdef float[:,:,::1] guidedfilter(unsigned char[:,:,::1] img, float[:,::1] tmap, 
                 num = 0
                 for m in range(i1, i2):
                     for n in range(j1, j2):
-                        sum_i += img[m, n, k]
+                        sum_i += float(img[m, n, k])
                         sum_p += tmap[m, n]
-                        sum_ii += img[m, n, k] ** 2
-                        sum_ip += img[m, n, k] * tmap[m, n]
+                        sum_ii += float(img[m, n, k]) ** 2
+                        sum_ip += float(img[m, n, k]) * tmap[m, n]
                         num += 1
                 mean_i = sum_i / num
                 mean_p = sum_p / num
@@ -168,11 +168,11 @@ cdef float[:,:,::1] guidedfilter(unsigned char[:,:,::1] img, float[:,::1] tmap, 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef unsigned char[:,:,::1] recoverimg(unsigned char[:,:,::1] img, unsigned char[::1] atm, float[:,:,::1] reftmap,
+cdef unsigned char[:,:,::1] recoverimg(unsigned char[:,:,::1] img, unsigned char[::1] atm, double[:,:,::1] reftmap,
                   unsigned char[:,:,::1] hzremov, int row, int col, int band):
     cdef:
         int i, j, k
-        float t0, tmap, hzrem
+        double t0, tmap, hzrem
         
     t0 = 0.1
     for i in range(row):
@@ -200,16 +200,16 @@ cpdef unsigned char[:,:,::1] darkchannelprior(unsigned char[:,:,::1] img, int ro
         unsigned char[:,::1] dark
         unsigned char[:,:,::1] hzremov
         unsigned long[::1] hist
-        float[:,::1] tmap, coef_a, coef_b
-        float[:,:,::1] reftmap
+        double[:,::1] tmap, coef_a, coef_b
+        double[:,:,::1] reftmap
         
     atm = np.zeros(band, dtype=np.uint8)
     dark = np.zeros((row, col), dtype=np.uint8)
     hist = np.zeros(256, dtype=np.uint32)
-    tmap = np.zeros((row, col), dtype=np.float32)
-    coef_a = np.zeros((row, col), dtype=np.float32)
-    coef_b = np.zeros((row, col), dtype=np.float32)
-    reftmap = np.zeros((row, col, band), dtype=np.float32)
+    tmap = np.zeros((row, col), dtype=np.double)
+    coef_a = np.zeros((row, col), dtype=np.double)
+    coef_b = np.zeros((row, col), dtype=np.double)
+    reftmap = np.zeros((row, col, band), dtype=np.double)
     hzremov = np.zeros((row, col, band), dtype=np.uint8)
     
     dark = darkchannel(img, dark, row, col, band, sw)
